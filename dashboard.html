@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - LAZISNU</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#15803d">
+  <meta name="description" content="Dashboard Juru Pungut LAZISNU">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+  
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Format Rupiah -->
+  <script src="formatRupiah.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Navbar -->
+  <nav class="bg-green-700 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-4">
+        <h1 class="text-xl font-bold">LAZISNU - Juru Pungut</h1>
+        <!-- Status Koneksi Badge -->
+        <span id="connectionStatus" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          🟢 ONLINE
+        </span>
+      </div>
+      <button 
+        id="logoutBtn"
+        class="bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition"
+      >
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto mt-8 px-4 max-w-6xl">
+    <!-- User Info -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">Dashboard Juru Pungut</h2>
+      <div class="bg-blue-50 p-4 rounded-md">
+        <p class="text-gray-700"><span class="font-semibold">Nama:</span> <span id="userName"></span></p>
+        <p class="text-gray-700"><span class="font-semibold">Email:</span> <span id="userEmail"></span></p>
+        <p class="text-gray-700"><span class="font-semibold">Role:</span> <span id="userRole" class="text-blue-700 font-semibold"></span></p>
+      </div>
+    </div>
+
+    <!-- Printer Settings -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Pengaturan Printer</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Toggle Printer -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Status Printer</label>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="togglePrinter" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            <span class="ml-3 text-sm font-medium text-gray-900" id="printerStatus">OFF</span>
+          </label>
+        </div>
+
+        <!-- Ukuran Kertas -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Ukuran Kertas</label>
+          <select 
+            id="paperSize"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="58mm">58mm</option>
+            <option value="80mm">80mm</option>
+          </select>
+        </div>
+
+        <!-- Connect Button -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+          <button 
+            id="btnConnectPrinter"
+            disabled
+            class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            🖨️ Connect Printer
+          </button>
+        </div>
+      </div>
+
+      <div id="printerInfo" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700">
+        ✓ Printer terhubung
+      </div>
+    </div>
+
+    <!-- Form Input Donasi -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Input Donasi Baru</h3>
+      
+      <form id="formDonasi" class="space-y-4">
+        <!-- Nama Donatur -->
+        <div class="relative">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nama Donatur</label>
+          <input 
+            type="text" 
+            id="namaDonatur" 
+            required
+            autocomplete="off"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Ketik nama donatur..."
+          >
+          <input type="hidden" id="donaturId">
+          <!-- Dropdown Autocomplete -->
+          <div id="donaturDropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          </div>
+        </div>
+
+        <!-- Jenis Zakat -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Zakat</label>
+          <select 
+            id="jenisZakat" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">Pilih Jenis Zakat</option>
+            <option value="maal">Maal</option>
+            <option value="profesi">Profesi</option>
+            <option value="fitrah">Fitrah</option>
+            <option value="s3">S3 (Sedekah, Sedino, Sewu)</option>
+          </select>
+        </div>
+
+        <!-- Nominal -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nominal</label>
+          <input 
+            type="text" 
+            id="nominal" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Rp 0"
+          >
+        </div>
+
+        <!-- Metode -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
+          <select 
+            id="metode" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">Pilih Metode</option>
+            <option value="cash">Cash</option>
+            <option value="qris">QRIS</option>
+          </select>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden text-red-600 text-sm"></div>
+
+        <!-- Submit Button -->
+        <div class="flex gap-2">
+          <button 
+            type="submit" 
+            id="btnSimpan"
+            class="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition font-semibold"
+          >
+            Simpan Donasi
+          </button>
+          <button 
+            type="button" 
+            id="btnPrint"
+            disabled
+            class="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            🖨️ Simpan & Print
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Export Laporan Pribadi -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Export Laporan Pribadi</h3>
+      
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Bulan</label>
+          <input 
+            type="month" 
+            id="jpReportMonth"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+        </div>
+        <div>
+          <button 
+            id="btnExportMyPDF"
+            class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition font-semibold"
+          >
+            📄 Export PDF Saya
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daftar Donasi -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Daftar Donasi Saya</h3>
+      
+      <!-- Loading State -->
+      <div id="loadingDonasi" class="text-center py-4 text-gray-500">
+        Memuat data...
+      </div>
+
+      <!-- Table Donasi -->
+      <div id="tableDonasi" class="hidden overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase bg-gray-100">
+            <tr>
+              <th class="px-4 py-3">Tanggal</th>
+              <th class="px-4 py-3">Nama Donatur</th>
+              <th class="px-4 py-3">Jenis Zakat</th>
+              <th class="px-4 py-3">Nominal</th>
+              <th class="px-4 py-3">Metode</th>
+            </tr>
+          </thead>
+          <tbody id="bodyDonasi" class="divide-y">
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyDonasi" class="hidden text-center py-8 text-gray-500">
+        Belum ada data donasi
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { checkLogin, logout, initAutoLogout } from './auth.js'
+    import { simpanDonasi, getDonasi, formatRupiah, formatTanggal } from './donasi.js'
+    import { connectPrinter, printReceipt, isPrinterReady, disconnectPrinter } from './printer.js'
+    import { exportMyPDF } from './exportJP.js'
+    import { searchDonatur, tambahDonatur } from './donatur.js'
+    import { 
+      isOnline, 
+      saveOfflineDonation, 
+      syncOfflineData, 
+      getOfflineCount, 
+      updateConnectionStatus 
+    } from './offline.js'
+
+    let printerEnabled = false
+    let selectedDonaturId = null
+    let searchTimeout = null
+
+    // Cek login dan role juru_pungut
+    const user = checkLogin('juru_pungut');
+
+    if (user) {
+      // Inisialisasi auto logout
+      initAutoLogout();
+      
+      // Tampilkan data user
+      document.getElementById('userName').textContent = user.nama;
+      document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('userRole').textContent = user.role.replace('_', ' ').toUpperCase();
+      
+      // Load daftar donasi
+      loadDonasi();
+      
+      // Set default month ke bulan ini
+      const now = new Date()
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      document.getElementById('jpReportMonth').value = currentMonth
+      
+      // ===== INISIALISASI MODE OFFLINE =====
+      initOfflineMode();
+    }
+
+    // ===== FUNGSI INISIALISASI MODE OFFLINE =====
+    function initOfflineMode() {
+      // Update status koneksi pertama kali
+      updateConnectionStatus(isOnline(), getOfflineCount())
+      
+      // Event listener saat online
+      window.addEventListener('online', async () => {
+        console.log('Connection restored')
+        updateConnectionStatus(true, getOfflineCount())
+        
+        // Auto sync jika ada data offline
+        const offlineCount = getOfflineCount()
+        if (offlineCount > 0) {
+          const confirmSync = confirm(`Ada ${offlineCount} donasi offline. Sinkronkan sekarang?`)
+          if (confirmSync) {
+            await handleSync()
+          }
+        }
+      })
+      
+      // Event listener saat offline
+      window.addEventListener('offline', () => {
+        console.log('Connection lost')
+        updateConnectionStatus(false, getOfflineCount())
+        alert('Koneksi internet terputus. Donasi akan disimpan offline.')
+      })
+      
+      // Cek apakah ada data offline saat load
+      const offlineCount = getOfflineCount()
+      if (offlineCount > 0 && isOnline()) {
+        const autoSync = confirm(`Ada ${offlineCount} donasi offline. Sinkronkan sekarang?`)
+        if (autoSync) {
+          handleSync()
+        }
+      }
+    }
+
+    // ===== FUNGSI HANDLE SINKRONISASI =====
+    async function handleSync() {
+      try {
+        const result = await syncOfflineData(user.id, user.email)
+        alert(result.message)
+        updateConnectionStatus(isOnline(), getOfflineCount())
+        loadDonasi() // Reload data setelah sync
+      } catch (error) {
+        alert('Gagal sinkronisasi: ' + error.message)
+      }
+    }
+
+    // Handle toggle printer
+    document.getElementById('togglePrinter').addEventListener('change', (e) => {
+      printerEnabled = e.target.checked
+      document.getElementById('printerStatus').textContent = printerEnabled ? 'ON' : 'OFF'
+      document.getElementById('btnConnectPrinter').disabled = !printerEnabled
+      document.getElementById('btnPrint').disabled = !printerEnabled || !isPrinterReady()
+      
+      if (!printerEnabled) {
+        disconnectPrinter()
+        document.getElementById('printerInfo').classList.add('hidden')
+      }
+    })
+
+    // Handle connect printer
+    document.getElementById('btnConnectPrinter').addEventListener('click', async () => {
+      const btn = document.getElementById('btnConnectPrinter')
+      btn.disabled = true
+      btn.textContent = 'Connecting...'
+
+      try {
+        const result = await connectPrinter()
+        alert(result.message)
+        document.getElementById('printerInfo').classList.remove('hidden')
+        document.getElementById('btnPrint').disabled = false
+      } catch (error) {
+        alert(error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '🖨️ Connect Printer'
+      }
+    })
+
+    // Handle logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (confirm('Apakah Anda yakin ingin logout?')) {
+        logout();
+      }
+    });
+
+    // Inisialisasi format Rupiah otomatis
+    initFormatRupiah('nominal');
+
+    // Autocomplete donatur
+    const inputNama = document.getElementById('namaDonatur')
+    const dropdown = document.getElementById('donaturDropdown')
+    
+    inputNama.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim()
+      
+      // Clear previous timeout
+      clearTimeout(searchTimeout)
+      
+      if (keyword.length < 2) {
+        dropdown.classList.add('hidden')
+        selectedDonaturId = null
+        return
+      }
+      
+      // Debounce 300ms
+      searchTimeout = setTimeout(async () => {
+        try {
+          const results = await searchDonatur(keyword)
+          
+          if (results.length === 0) {
+            dropdown.innerHTML = `
+              <div class="p-3 hover:bg-gray-100 cursor-pointer text-blue-600" id="addNewDonatur">
+                + Tambah "${keyword}" sebagai donatur baru
+              </div>
+            `
+            dropdown.classList.remove('hidden')
+            
+            document.getElementById('addNewDonatur').addEventListener('click', async () => {
+              try {
+                const newDonatur = await tambahDonatur(keyword)
+                inputNama.value = newDonatur.nama
+                selectedDonaturId = newDonatur.id
+                document.getElementById('donaturId').value = newDonatur.id
+                dropdown.classList.add('hidden')
+                alert('✓ Donatur baru berhasil ditambahkan!')
+              } catch (error) {
+                alert('Gagal tambah donatur: ' + error.message)
+              }
+            })
+          } else {
+            dropdown.innerHTML = results.map(d => `
+              <div class="p-3 hover:bg-gray-100 cursor-pointer border-b" data-id="${d.id}" data-nama="${d.nama}">
+                <div class="font-medium">${d.nama}</div>
+                ${d.alamat ? `<div class="text-xs text-gray-500">${d.alamat}</div>` : ''}
+              </div>
+            `).join('')
+            dropdown.classList.remove('hidden')
+            
+            dropdown.querySelectorAll('[data-id]').forEach(item => {
+              item.addEventListener('click', () => {
+                inputNama.value = item.getAttribute('data-nama')
+                selectedDonaturId = item.getAttribute('data-id')
+                document.getElementById('donaturId').value = selectedDonaturId
+                dropdown.classList.add('hidden')
+              })
+            })
+          }
+        } catch (error) {
+          console.error('Error search donatur:', error)
+        }
+      }, 300)
+    })
+    
+    // Close dropdown saat klik di luar
+    document.addEventListener('click', (e) => {
+      if (!inputNama.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden')
+      }
+    })
+
+    // Handle form submit dengan mode offline
+    document.getElementById('formDonasi').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const namaDonatur = document.getElementById('namaDonatur').value.trim();
+      const jenisZakat = document.getElementById('jenisZakat').value;
+      const nominalInput = document.getElementById('nominal').value;
+      const metode = document.getElementById('metode').value;
+      const errorMessage = document.getElementById('errorMessage');
+      const btnSimpan = document.getElementById('btnSimpan');
+
+      errorMessage.classList.add('hidden');
+
+      // Validasi nominal
+      const validasi = validateNominal(nominalInput);
+      if (!validasi.valid) {
+        errorMessage.textContent = validasi.message;
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+      const nominal = validasi.value;
+
+      // Validasi field lain
+      if (!namaDonatur || !jenisZakat || !metode) {
+        errorMessage.textContent = 'Semua field wajib diisi';
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+
+      btnSimpan.disabled = true;
+      btnSimpan.textContent = 'Menyimpan...';
+
+      try {
+        const dataDonasi = {
+          nama_donatur: namaDonatur,
+          jenis_zakat: jenisZakat,
+          nominal: nominal,
+          metode: metode,
+          juru_pungut_id: user.id,
+          donatur_id: selectedDonaturId,
+          tanggal_donasi: new Date().toISOString()
+        };
+
+        // CEK KONEKSI: Jika offline, simpan ke localStorage
+        if (!isOnline()) {
+          const result = saveOfflineDonation(dataDonasi);
+          alert(`⚠️ OFFLINE: Donasi disimpan sementara (${result.count} data offline)`);
+          updateConnectionStatus(false, result.count);
+        } else {
+          // Jika online, simpan ke Supabase
+          await simpanDonasi(dataDonasi, user.id, user.email);
+          alert('✓ Donasi berhasil disimpan!');
+        }
+
+        // Reset form
+        document.getElementById('formDonasi').reset();
+        selectedDonaturId = null;
+        loadDonasi();
+
+      } catch (error) {
+        errorMessage.textContent = 'Gagal menyimpan donasi: ' + error.message;
+        errorMessage.classList.remove('hidden');
+      } finally {
+        btnSimpan.disabled = false;
+        btnSimpan.textContent = 'Simpan Donasi';
+      }
+    });
+
+    // Handle print button dengan mode offline
+    document.getElementById('btnPrint').addEventListener('click', async () => {
+      const namaDonatur = document.getElementById('namaDonatur').value.trim()
+      const jenisZakat = document.getElementById('jenisZakat').value
+      const nominalInput = document.getElementById('nominal').value
+      const metode = document.getElementById('metode').value
+      const errorMessage = document.getElementById('errorMessage')
+      const btnPrint = document.getElementById('btnPrint')
+
+      errorMessage.classList.add('hidden')
+
+      // Validasi nominal
+      const validasi = validateNominal(nominalInput)
+      if (!validasi.valid) {
+        errorMessage.textContent = validasi.message
+        errorMessage.classList.remove('hidden')
+        return
+      }
+      const nominal = validasi.value
+
+      // Validasi field lain
+      if (!namaDonatur || !jenisZakat || !metode) {
+        errorMessage.textContent = 'Semua field wajib diisi'
+        errorMessage.classList.remove('hidden')
+        return
+      }
+
+      btnPrint.disabled = true
+      btnPrint.textContent = 'Menyimpan...'
+
+      try {
+        const dataDonasi = {
+          nama_donatur: namaDonatur,
+          jenis_zakat: jenisZakat,
+          nominal: nominal,
+          metode: metode,
+          juru_pungut_id: user.id,
+          donatur_id: selectedDonaturId,
+          tanggal_donasi: new Date().toISOString()
+        }
+
+        // CEK KONEKSI: Jika offline, simpan ke localStorage
+        if (!isOnline()) {
+          const result = saveOfflineDonation(dataDonasi)
+          alert(`⚠️ OFFLINE: Donasi disimpan sementara (${result.count} data offline). Printer tidak tersedia.`)
+          updateConnectionStatus(false, result.count)
+        } else {
+          // Jika online, simpan ke Supabase dan print
+          await simpanDonasi(dataDonasi, user.id, user.email)
+
+          const printData = {
+            ...dataDonasi,
+            tanggal: new Date().toISOString(),
+            juru_pungut_nama: user.nama
+          }
+
+          btnPrint.textContent = 'Printing...'
+          const paperSize = document.getElementById('paperSize').value
+          await printReceipt(printData, paperSize)
+
+          alert('✓ Donasi berhasil disimpan dan dicetak!')
+        }
+
+        document.getElementById('formDonasi').reset()
+        selectedDonaturId = null
+        loadDonasi()
+      } catch (error) {
+        errorMessage.textContent = 'Gagal: ' + error.message
+        errorMessage.classList.remove('hidden')
+      } finally {
+        btnPrint.disabled = false
+        btnPrint.textContent = '🖨️ Simpan & Print'
+      }
+    });
+
+    // Handle export PDF pribadi
+    document.getElementById('btnExportMyPDF').addEventListener('click', async () => {
+      const monthValue = document.getElementById('jpReportMonth').value
+      
+      if (!monthValue) {
+        alert('Pilih bulan terlebih dahulu')
+        return
+      }
+      
+      const [year, month] = monthValue.split('-')
+      const btn = document.getElementById('btnExportMyPDF')
+      
+      btn.disabled = true
+      btn.textContent = 'Generating...'
+      
+      try {
+        await exportMyPDF(user.id, user.nama, parseInt(year), parseInt(month))
+      } catch (error) {
+        alert(error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '📄 Export PDF Saya'
+      }
+    });
+
+    // Fungsi untuk load daftar donasi
+    async function loadDonasi() {
+      const loadingDonasi = document.getElementById('loadingDonasi');
+      const tableDonasi = document.getElementById('tableDonasi');
+      const emptyDonasi = document.getElementById('emptyDonasi');
+      const bodyDonasi = document.getElementById('bodyDonasi');
+
+      try {
+        // Tampilkan loading
+        loadingDonasi.classList.remove('hidden');
+        tableDonasi.classList.add('hidden');
+        emptyDonasi.classList.add('hidden');
+
+        // Ambil data donasi
+        const donasi = await getDonasi(user.id);
+
+        // Sembunyikan loading
+        loadingDonasi.classList.add('hidden');
+
+        if (donasi.length === 0) {
+          // Tampilkan empty state
+          emptyDonasi.classList.remove('hidden');
+        } else {
+          // Tampilkan tabel
+          tableDonasi.classList.remove('hidden');
+          
+          // Render data ke tabel
+          bodyDonasi.innerHTML = donasi.map(item => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3">${formatTanggal(item.tanggal)}</td>
+              <td class="px-4 py-3 font-medium">${item.nama_donatur}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                  ${item.jenis_zakat.toUpperCase()}
+                </span>
+              </td>
+              <td class="px-4 py-3 font-semibold text-green-600">${formatRupiah(item.nominal)}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-1 text-xs rounded-full ${item.metode === 'cash' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                  ${item.metode.toUpperCase()}
+                </span>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+      } catch (error) {
+        loadingDonasi.classList.add('hidden');
+        emptyDonasi.classList.remove('hidden');
+        emptyDonasi.textContent = 'Gagal memuat data: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>

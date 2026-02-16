@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - LAZISNU</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#15803d">
+  <meta name="description" content="Dashboard Admin LAZISNU">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+  
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- PapaParse CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Format Rupiah -->
+  <script src="formatRupiah.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Navbar -->
+  <nav class="bg-green-700 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold">LAZISNU - Admin</h1>
+      <button 
+        id="logoutBtn"
+        class="bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition"
+      >
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto mt-8 px-4 max-w-7xl">
+    <!-- User Info -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">Dashboard Admin</h2>
+      <div class="bg-green-50 p-4 rounded-md">
+        <p class="text-gray-700"><span class="font-semibold">Nama:</span> <span id="userName"></span></p>
+        <p class="text-gray-700"><span class="font-semibold">Email:</span> <span id="userEmail"></span></p>
+        <p class="text-gray-700"><span class="font-semibold">Role:</span> <span id="userRole" class="text-green-700 font-semibold"></span></p>
+      </div>
+    </div>
+
+    <!-- Statistik -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <!-- Total Hari Ini -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Total Hari Ini</h3>
+        <p id="totalHariIni" class="text-3xl font-bold text-green-600">Rp 0</p>
+      </div>
+
+      <!-- Total Bulan Ini -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Total Bulan Ini</h3>
+        <p id="totalBulanIni" class="text-3xl font-bold text-blue-600">Rp 0</p>
+      </div>
+
+      <!-- Total Keseluruhan -->
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-sm font-medium text-gray-500 mb-2">Total Keseluruhan</h3>
+        <p id="totalKeseluruhan" class="text-3xl font-bold text-purple-600">Rp 0</p>
+      </div>
+    </div>
+
+    <!-- Dashboard Grafik Statistik -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">📊 Dashboard Grafik Statistik</h3>
+      
+      <!-- Loading Grafik -->
+      <div id="loadingCharts" class="text-center py-8 text-gray-500">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <p class="mt-2">Memuat grafik...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorCharts" class="hidden text-center py-8 text-red-600">
+        <p>❌ Gagal memuat grafik. Silakan refresh halaman.</p>
+      </div>
+
+      <!-- Grid Grafik -->
+      <div id="chartsContainer" class="hidden">
+        <!-- Grafik 7 Hari Terakhir -->
+        <div class="mb-8">
+          <h4 class="text-lg font-semibold text-gray-700 mb-3">Donasi 7 Hari Terakhir</h4>
+          <div class="bg-gray-50 p-4 rounded-lg" style="height: 300px;">
+            <canvas id="chart7Hari"></canvas>
+          </div>
+        </div>
+
+        <!-- Grid 2 Kolom untuk Pie & Bar Chart -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Grafik Per Jenis Zakat -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-3">Per Jenis Zakat</h4>
+            <div class="bg-gray-50 p-4 rounded-lg" style="height: 300px;">
+              <canvas id="chartJenisZakat"></canvas>
+            </div>
+          </div>
+
+          <!-- Grafik Per Juru Pungut -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-3">Per Juru Pungut</h4>
+            <div class="bg-gray-50 p-4 rounded-lg" style="height: 300px;">
+              <canvas id="chartJuruPungut"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Laporan PDF -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Export Laporan PDF</h3>
+      
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Bulan</label>
+          <input 
+            type="month" 
+            id="exportMonth"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+        </div>
+        <div>
+          <button 
+            id="btnExportPDF"
+            class="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition font-semibold"
+          >
+            📄 Export PDF
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utility Panel -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Utility Panel (Internal Only)</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <button 
+          id="btnBackupCSV"
+          class="bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 transition font-semibold"
+        >
+          💾 Backup Data CSV
+        </button>
+        <button 
+          id="btnUploadDonaturCSV"
+          class="bg-green-600 text-white px-4 py-3 rounded-md hover:bg-green-700 transition font-semibold"
+        >
+          📤 Upload CSV Donatur
+        </button>
+        <button 
+          id="btnViewStats"
+          class="bg-purple-600 text-white px-4 py-3 rounded-md hover:bg-purple-700 transition font-semibold"
+        >
+          📊 Lihat Statistik DB
+        </button>
+        <button 
+          id="btnViewAudit"
+          class="bg-orange-600 text-white px-4 py-3 rounded-md hover:bg-orange-700 transition font-semibold"
+        >
+          📋 Lihat Audit Logs
+        </button>
+      </div>
+      
+      <div id="utilityResult" class="hidden mt-4 p-4 bg-gray-50 rounded-md">
+        <h4 class="font-semibold mb-2">Hasil:</h4>
+        <pre id="utilityOutput" class="text-sm overflow-auto max-h-96"></pre>
+      </div>
+    </div>
+
+    <!-- Manajemen Juru Pungut -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Manajemen Juru Pungut</h3>
+      
+      <!-- Form Tambah Juru Pungut -->
+      <div class="bg-gray-50 p-4 rounded-md mb-6">
+        <h4 class="font-semibold mb-3 text-gray-700">Tambah Juru Pungut Baru</h4>
+        <form id="formJuruPungut" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <input 
+              type="text" 
+              id="namaJP" 
+              required
+              placeholder="Nama"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+          </div>
+          <div>
+            <input 
+              type="email" 
+              id="emailJP" 
+              required
+              placeholder="Email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+          </div>
+          <div>
+            <input 
+              type="password" 
+              id="passwordJP" 
+              required
+              placeholder="Password"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+          </div>
+          <div>
+            <button 
+              type="submit" 
+              id="btnTambahJP"
+              class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition font-semibold"
+            >
+              Simpan
+            </button>
+          </div>
+        </form>
+        <div id="errorJP" class="hidden text-red-600 text-sm mt-2"></div>
+      </div>
+
+      <!-- Tabel Daftar Juru Pungut -->
+      <div id="loadingJP" class="text-center py-4 text-gray-500">
+        Memuat data...
+      </div>
+
+      <div id="tableJP" class="hidden overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase bg-gray-100">
+            <tr>
+              <th class="px-4 py-3">Nama</th>
+              <th class="px-4 py-3">Email</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Tanggal Dibuat</th>
+              <th class="px-4 py-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bodyJP" class="divide-y">
+          </tbody>
+        </table>
+      </div>
+
+      <div id="emptyJP" class="hidden text-center py-8 text-gray-500">
+        Belum ada juru pungut
+      </div>
+    </div>
+
+    <!-- Ringkasan Per Juru Pungut -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Ringkasan Per Juru Pungut</h3>
+      
+      <!-- Loading State -->
+      <div id="loadingRingkasan" class="text-center py-4 text-gray-500">
+        Memuat data...
+      </div>
+
+      <!-- Grid Ringkasan -->
+      <div id="gridRingkasan" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyRingkasan" class="hidden text-center py-8 text-gray-500">
+        Belum ada data
+      </div>
+    </div>
+
+    <!-- Filter & Tabel Donasi -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Daftar Semua Donasi</h3>
+      
+      <!-- Filter -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- Filter Tanggal Mulai -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
+          <input 
+            type="date" 
+            id="tanggalMulai"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+        </div>
+
+        <!-- Filter Tanggal Akhir -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir</label>
+          <input 
+            type="date" 
+            id="tanggalAkhir"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+        </div>
+
+        <!-- Filter Juru Pungut -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Juru Pungut</label>
+          <select 
+            id="filterJuruPungut"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">Semua Juru Pungut</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tombol Filter -->
+      <div class="flex gap-2 mb-6">
+        <button 
+          id="btnFilter"
+          class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+        >
+          Terapkan Filter
+        </button>
+        <button 
+          id="btnReset"
+          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition"
+        >
+          Reset Filter
+        </button>
+        <button 
+          id="btnLockHariIni"
+          class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition ml-auto"
+        >
+          🔒 Lock Donasi Hari Ini
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingDonasi" class="text-center py-4 text-gray-500">
+        Memuat data...
+      </div>
+
+      <!-- Table Donasi -->
+      <div id="tableDonasi" class="hidden overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase bg-gray-100">
+            <tr>
+              <th class="px-4 py-3 cursor-pointer hover:bg-gray-200" id="sortTanggal">
+                Tanggal <span id="iconTanggal">↕</span>
+              </th>
+              <th class="px-4 py-3">Nama Donatur</th>
+              <th class="px-4 py-3">Jenis Zakat</th>
+              <th class="px-4 py-3 cursor-pointer hover:bg-gray-200" id="sortNominal">
+                Nominal <span id="iconNominal">↕</span>
+              </th>
+              <th class="px-4 py-3">Metode</th>
+              <th class="px-4 py-3">Juru Pungut</th>
+              <th class="px-4 py-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bodyDonasi" class="divide-y">
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyDonasi" class="hidden text-center py-8 text-gray-500">
+        Belum ada data donasi
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit Donasi -->
+  <div id="modalEditDonasi" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">Edit Donasi</h3>
+      
+      <form id="formEditDonasi" class="space-y-4">
+        <input type="hidden" id="editDonasiId">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nama Donatur</label>
+          <input 
+            type="text" 
+            id="editNamaDonatur" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Zakat</label>
+          <select 
+            id="editJenisZakat" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="maal">Maal</option>
+            <option value="profesi">Profesi</option>
+            <option value="fitrah">Fitrah</option>
+            <option value="s3">S3 (Sedekah, Sedino, Sewu)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nominal</label>
+          <input 
+            type="text" 
+            id="editNominal" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Rp 0"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
+          <select 
+            id="editMetode" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="cash">Cash</option>
+            <option value="qris">QRIS</option>
+          </select>
+        </div>
+
+        <div id="errorEditDonasi" class="hidden text-red-600 text-sm"></div>
+
+        <div class="flex gap-2">
+          <button 
+            type="submit" 
+            id="btnSimpanEdit"
+            class="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition font-semibold"
+          >
+            Simpan
+          </button>
+          <button 
+            type="button" 
+            id="btnBatalEdit"
+            class="flex-1 bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition font-semibold"
+          >
+            Batal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Upload CSV Donatur -->
+  <div id="modalUploadCSV" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-xl font-bold mb-4 text-gray-800">📤 Upload Data Donatur (CSV)</h3>
+      
+      <form id="formUploadCSV" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File CSV</label>
+          <input 
+            type="file" 
+            id="csvFileUpload" 
+            accept=".csv"
+            required
+            class="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer"
+          >
+          <p class="text-xs text-gray-500 mt-1">Format: nama,alamat,no_hp</p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-gray-700">
+          <p class="font-semibold mb-1">ℹ️ Informasi:</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Nama akan dinormalisasi (UPPERCASE)</li>
+            <li>Jika nama + alamat sama → update data</li>
+            <li>Jika belum ada → insert baru</li>
+            <li>Nama kosong akan diskip otomatis</li>
+          </ul>
+        </div>
+
+        <div id="errorUploadCSV" class="hidden bg-red-50 border border-red-200 rounded p-3 text-sm text-red-600"></div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingUploadCSV" class="hidden text-center py-4">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <p class="mt-2 text-sm text-gray-600">Memproses data...</p>
+        </div>
+
+        <div id="uploadButtons" class="flex gap-2">
+          <button 
+            type="submit" 
+            id="btnUploadCSV"
+            class="flex-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition font-semibold"
+          >
+            Upload & Proses
+          </button>
+          <button 
+            type="button" 
+            id="btnCancelUploadCSV"
+            class="flex-1 bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition font-semibold"
+          >
+            Batal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- bcryptjs CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  
+  <script type="module">
+    // Declare bcrypt global
+    const bcrypt = window.dcodeIO.bcrypt
+    window.bcrypt = bcrypt
+    
+    import { checkLogin, logout, initAutoLogout } from './auth.js'
+    import { getStatistik, getAllDonasi, getJuruPungutList, getRingkasanPerJuruPungut, formatRupiah, formatTanggal } from './admin.js'
+    import { lockDonasiHariIni } from './audit.js'
+    import { tambahJuruPungut, getAllJuruPungut, hapusJuruPungut, editJuruPungut, gantiPassword, nonaktifkanUser, aktifkanUser, formatTanggalUser } from './users.js'
+    import { generatePDFReport } from './export.js'
+    import { exportDonasiToCSV } from './backup.js'
+    import { softDeleteDonasi } from './donasi.js'
+    import { uploadCSVDonatur } from './uploadCSVDonatur.js'
+    import { showToast } from './toast.js'
+    import { supabase } from './supabaseClient.js'
+    import { 
+      getDonasi7Hari, 
+      getDonasiPerJenis, 
+      getDonasiPerJuruPungut,
+      renderLineChart,
+      renderPieChart,
+      renderBarChart
+    } from './charts.js'
+
+    // State untuk sorting
+    let currentData = [];
+    let sortBy = 'tanggal';
+    let sortOrder = 'desc';
+
+    // Cek login dan role admin
+    const user = checkLogin('admin');
+
+    if (user) {
+      // Inisialisasi auto logout
+      initAutoLogout();
+      
+      // Tampilkan data user
+      document.getElementById('userName').textContent = user.nama;
+      document.getElementById('userEmail').textContent = user.email;
+      document.getElementById('userRole').textContent = user.role.toUpperCase();
+      
+      // Load data
+      loadStatistik();
+      loadJuruPungutList();
+      loadRingkasan();
+      loadDonasi();
+      loadJuruPungutTable();
+      
+      // Inisialisasi format Rupiah untuk modal edit
+      initFormatRupiah('editNominal');
+      
+      // Load grafik dengan delay untuk memastikan Chart.js sudah loaded
+      setTimeout(() => {
+        loadCharts();
+      }, 500);
+      
+      // Set default month ke bulan ini
+      const now = new Date()
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      document.getElementById('exportMonth').value = currentMonth
+    }
+
+    // ===== FUNGSI LOAD GRAFIK =====
+    async function loadCharts() {
+      const loadingCharts = document.getElementById('loadingCharts')
+      const errorCharts = document.getElementById('errorCharts')
+      const chartsContainer = document.getElementById('chartsContainer')
+
+      try {
+        // Cek apakah Chart.js sudah loaded
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js belum loaded')
+          throw new Error('Chart.js belum loaded')
+        }
+
+        loadingCharts.classList.remove('hidden')
+        errorCharts.classList.add('hidden')
+        chartsContainer.classList.add('hidden')
+
+        console.log('Fetching chart data...')
+
+        // Fetch data untuk semua grafik secara paralel
+        const data7Hari = await getDonasi7Hari()
+        console.log('Data 7 hari:', data7Hari)
+
+        const dataJenis = await getDonasiPerJenis()
+        console.log('Data jenis:', dataJenis)
+
+        const dataJuruPungut = await getDonasiPerJuruPungut()
+        console.log('Data juru pungut:', dataJuruPungut)
+
+        // Cek apakah ada data
+        if (!data7Hari.labels || data7Hari.labels.length === 0) {
+          console.warn('Tidak ada data donasi 7 hari terakhir')
+        }
+
+        // Render grafik satu per satu
+        console.log('Rendering charts...')
+        renderLineChart('chart7Hari', data7Hari.labels, data7Hari.values)
+        renderPieChart('chartJenisZakat', dataJenis.labels, dataJenis.values)
+        renderBarChart('chartJuruPungut', dataJuruPungut.labels, dataJuruPungut.values)
+
+        // Tampilkan grafik
+        loadingCharts.classList.add('hidden')
+        chartsContainer.classList.remove('hidden')
+        console.log('Charts loaded successfully')
+      } catch (error) {
+        console.error('Error loading charts:', error)
+        console.error('Error stack:', error.stack)
+        loadingCharts.classList.add('hidden')
+        errorCharts.classList.remove('hidden')
+        // Tampilkan error detail di console untuk debugging
+        errorCharts.innerHTML = `
+          <p>❌ Gagal memuat grafik.</p>
+          <p class="text-sm mt-2">Error: ${error.message}</p>
+          <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+            Refresh Halaman
+          </button>
+        `
+      }
+    }
+
+    // Handle logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (confirm('Apakah Anda yakin ingin logout?')) {
+        logout();
+      }
+    });
+
+    // Handle sorting
+    document.getElementById('sortTanggal').addEventListener('click', () => {
+      if (sortBy === 'tanggal') {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortBy = 'tanggal';
+        sortOrder = 'desc';
+      }
+      renderTable();
+    });
+
+    document.getElementById('sortNominal').addEventListener('click', () => {
+      if (sortBy === 'nominal') {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortBy = 'nominal';
+        sortOrder = 'desc';
+      }
+      renderTable();
+    });
+
+    // Handle filter
+    document.getElementById('btnFilter').addEventListener('click', () => {
+      loadDonasi();
+    });
+
+    // Handle reset filter
+    document.getElementById('btnReset').addEventListener('click', () => {
+      document.getElementById('tanggalMulai').value = '';
+      document.getElementById('tanggalAkhir').value = '';
+      document.getElementById('filterJuruPungut').value = '';
+      loadDonasi();
+    });
+
+    // Handle lock donasi hari ini
+    document.getElementById('btnLockHariIni').addEventListener('click', async () => {
+      if (!confirm('Apakah Anda yakin ingin mengunci semua donasi hari ini? Data yang terkunci tidak bisa diubah lagi.')) {
+        return;
+      }
+
+      const btn = document.getElementById('btnLockHariIni');
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+
+      try {
+        const result = await lockDonasiHariIni(user.id, user.email);
+        alert(result.message);
+        loadDonasi();
+      } catch (error) {
+        alert('Gagal lock donasi: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔒 Lock Donasi Hari Ini';
+      }
+    });
+
+    // Handle form tambah juru pungut
+    document.getElementById('formJuruPungut').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const nama = document.getElementById('namaJP').value.trim();
+      const email = document.getElementById('emailJP').value.trim();
+      const password = document.getElementById('passwordJP').value;
+      const errorJP = document.getElementById('errorJP');
+      const btnTambahJP = document.getElementById('btnTambahJP');
+
+      errorJP.classList.add('hidden');
+      btnTambahJP.disabled = true;
+      btnTambahJP.textContent = 'Menyimpan...';
+
+      try {
+        await tambahJuruPungut(nama, email, password, user.id, user.email);
+        alert('Juru pungut berhasil ditambahkan!');
+        document.getElementById('formJuruPungut').reset();
+        loadJuruPungutTable();
+        loadJuruPungutList();
+      } catch (error) {
+        errorJP.textContent = error.message;
+        errorJP.classList.remove('hidden');
+      } finally {
+        btnTambahJP.disabled = false;
+        btnTambahJP.textContent = 'Simpan';
+      }
+    });
+
+    // Handle export PDF
+    document.getElementById('btnExportPDF').addEventListener('click', async () => {
+      const monthValue = document.getElementById('exportMonth').value
+      
+      if (!monthValue) {
+        alert('Pilih bulan terlebih dahulu')
+        return
+      }
+      
+      const [year, month] = monthValue.split('-')
+      const btn = document.getElementById('btnExportPDF')
+      
+      btn.disabled = true
+      btn.textContent = 'Generating...'
+      
+      try {
+        await generatePDFReport(parseInt(year), parseInt(month))
+      } catch (error) {
+        alert(error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '📄 Export PDF'
+      }
+    })
+
+    // Handle backup CSV
+    document.getElementById('btnBackupCSV').addEventListener('click', async () => {
+      const btn = document.getElementById('btnBackupCSV')
+      btn.disabled = true
+      btn.textContent = 'Memproses...'
+      
+      try {
+        const result = await exportDonasiToCSV()
+        alert(`Backup CSV berhasil! Total ${result.count} data diexport.`)
+      } catch (error) {
+        alert('Gagal backup: ' + error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '💾 Backup Data CSV'
+      }
+    })
+
+    // Handle view stats
+    document.getElementById('btnViewStats').addEventListener('click', async () => {
+      const btn = document.getElementById('btnViewStats')
+      btn.disabled = true
+      btn.textContent = 'Loading...'
+      
+      try {
+        const { count: totalDonasi } = await supabase.from('donasi').select('*', { count: 'exact', head: true })
+        const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true })
+        const { count: totalAudit } = await supabase.from('audit_logs').select('*', { count: 'exact', head: true })
+        const { data: locked } = await supabase.from('donasi').select('id').eq('is_locked', true)
+        
+        const stats = {
+          'Total Donasi': totalDonasi,
+          'Total Users': totalUsers,
+          'Total Audit Logs': totalAudit,
+          'Donasi Terkunci': locked?.length || 0,
+          'Donasi Belum Terkunci': totalDonasi - (locked?.length || 0)
+        }
+        
+        document.getElementById('utilityResult').classList.remove('hidden')
+        document.getElementById('utilityOutput').textContent = JSON.stringify(stats, null, 2)
+      } catch (error) {
+        alert('Gagal: ' + error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '📊 Lihat Statistik DB'
+      }
+    })
+
+    // Handle view audit
+    document.getElementById('btnViewAudit').addEventListener('click', async () => {
+      const btn = document.getElementById('btnViewAudit')
+      btn.disabled = true
+      btn.textContent = 'Loading...'
+      
+      try {
+        const { data: logs } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20)
+        
+        const formatted = logs.map(log => ({
+          waktu: new Date(log.created_at).toLocaleString('id-ID'),
+          action: log.action,
+          table: log.table_name,
+          user: log.user_email
+        }))
+        
+        document.getElementById('utilityResult').classList.remove('hidden')
+        document.getElementById('utilityOutput').textContent = JSON.stringify(formatted, null, 2)
+      } catch (error) {
+        alert('Gagal: ' + error.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = '📋 Lihat Audit Logs'
+      }
+    })
+
+    // Handle open modal upload CSV
+    document.getElementById('btnUploadDonaturCSV').addEventListener('click', () => {
+      document.getElementById('modalUploadCSV').classList.remove('hidden')
+      document.getElementById('csvFileUpload').value = ''
+      document.getElementById('errorUploadCSV').classList.add('hidden')
+      document.getElementById('loadingUploadCSV').classList.add('hidden')
+      document.getElementById('uploadButtons').classList.remove('hidden')
+    })
+
+    // Handle close modal
+    document.getElementById('btnCancelUploadCSV').addEventListener('click', () => {
+      document.getElementById('modalUploadCSV').classList.add('hidden')
+    })
+
+    // Handle submit upload CSV
+    document.getElementById('formUploadCSV').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      const fileInput = document.getElementById('csvFileUpload')
+      const file = fileInput.files[0]
+      const errorDiv = document.getElementById('errorUploadCSV')
+      const loadingDiv = document.getElementById('loadingUploadCSV')
+      const buttonsDiv = document.getElementById('uploadButtons')
+      
+      if (!file) {
+        errorDiv.textContent = 'Pilih file CSV terlebih dahulu'
+        errorDiv.classList.remove('hidden')
+        return
+      }
+      
+      if (!file.name.endsWith('.csv')) {
+        errorDiv.textContent = 'File harus berformat CSV'
+        errorDiv.classList.remove('hidden')
+        return
+      }
+      
+      errorDiv.classList.add('hidden')
+      buttonsDiv.classList.add('hidden')
+      loadingDiv.classList.remove('hidden')
+      
+      try {
+        const result = await uploadCSVDonatur(file, user.id, user.email)
+        
+        document.getElementById('modalUploadCSV').classList.add('hidden')
+        
+        let message = `✅ Upload selesai: ${result.total} data berhasil diproses`
+        if (result.inserted > 0 || result.updated > 0) {
+          message += ` (${result.inserted} baru, ${result.updated} diupdate)`
+        }
+        
+        showToast(message, 'success')
+        
+        if (result.skipped && result.skipped.length > 0) {
+          console.warn('Skipped rows:', result.skipped)
+          showToast(`⚠️ ${result.skipped.length} baris diskip (nama kosong)`, 'warning')
+        }
+        
+        // Reload table jika ada
+        if (typeof loadDonaturTable === 'function') {
+          loadDonaturTable()
+        }
+      } catch (error) {
+        loadingDiv.classList.add('hidden')
+        buttonsDiv.classList.remove('hidden')
+        errorDiv.textContent = error.message
+        errorDiv.classList.remove('hidden')
+        showToast('❌ Gagal upload CSV: ' + error.message, 'error')
+      }
+    })
+
+    // Fungsi untuk load tabel juru pungut
+    async function loadJuruPungutTable() {
+      const loadingJP = document.getElementById('loadingJP');
+      const tableJP = document.getElementById('tableJP');
+      const emptyJP = document.getElementById('emptyJP');
+      const bodyJP = document.getElementById('bodyJP');
+
+      try {
+        loadingJP.classList.remove('hidden');
+        tableJP.classList.add('hidden');
+        emptyJP.classList.add('hidden');
+
+        const juruPungutList = await getAllJuruPungut();
+
+        loadingJP.classList.add('hidden');
+
+        if (juruPungutList.length === 0) {
+          emptyJP.classList.remove('hidden');
+        } else {
+          tableJP.classList.remove('hidden');
+          bodyJP.innerHTML = juruPungutList.map(jp => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium">${jp.nama}</td>
+              <td class="px-4 py-3">${jp.email}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-1 text-xs rounded-full ${jp.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                  ${jp.is_active ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-gray-600">${formatTanggalUser(jp.created_at)}</td>
+              <td class="px-4 py-3">
+                <div class="flex gap-1">
+                  <button 
+                    data-id="${jp.id}"
+                    data-nama="${jp.nama}"
+                    data-email="${jp.email}"
+                    class="btn-edit bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    data-id="${jp.id}"
+                    data-nama="${jp.nama}"
+                    class="btn-password bg-yellow-600 text-white px-2 py-1 rounded text-xs hover:bg-yellow-700"
+                  >
+                    Password
+                  </button>
+                  ${jp.is_active ? `
+                    <button 
+                      data-id="${jp.id}"
+                      data-nama="${jp.nama}"
+                      class="btn-deactivate bg-orange-600 text-white px-2 py-1 rounded text-xs hover:bg-orange-700"
+                    >
+                      Nonaktif
+                    </button>
+                  ` : `
+                    <button 
+                      data-id="${jp.id}"
+                      data-nama="${jp.nama}"
+                      class="btn-activate bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                    >
+                      Aktifkan
+                    </button>
+                  `}
+                  <button 
+                    data-id="${jp.id}"
+                    data-nama="${jp.nama}"
+                    class="btn-delete bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+          
+          // Event listener untuk tombol edit
+          document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const userId = btn.getAttribute('data-id')
+              const nama = btn.getAttribute('data-nama')
+              const email = btn.getAttribute('data-email')
+              
+              const newNama = prompt('Nama:', nama)
+              if (!newNama) return
+              
+              const newEmail = prompt('Email:', email)
+              if (!newEmail) return
+              
+              editJuruPungut(userId, newNama, newEmail, user.id, user.email)
+                .then(() => {
+                  alert('Data berhasil diupdate')
+                  loadJuruPungutTable()
+                })
+                .catch(err => alert('Gagal update: ' + err.message))
+            })
+          })
+          
+          // Event listener untuk tombol ganti password
+          document.querySelectorAll('.btn-password').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const userId = btn.getAttribute('data-id')
+              const nama = btn.getAttribute('data-nama')
+              
+              const newPassword = prompt(`Password baru untuk ${nama}:`)
+              if (!newPassword) return
+              
+              if (newPassword.length < 6) {
+                alert('Password minimal 6 karakter')
+                return
+              }
+              
+              gantiPassword(userId, newPassword, user.id, user.email)
+                .then(() => alert('Password berhasil diubah'))
+                .catch(err => alert('Gagal ubah password: ' + err.message))
+            })
+          })
+          
+          // Event listener untuk tombol nonaktifkan
+          document.querySelectorAll('.btn-deactivate').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const userId = btn.getAttribute('data-id')
+              const nama = btn.getAttribute('data-nama')
+              
+              // Cek apakah admin mencoba nonaktifkan dirinya sendiri
+              if (userId === user.id) {
+                alert('Tidak bisa menonaktifkan akun sendiri')
+                return
+              }
+              
+              if (!confirm(`Nonaktifkan ${nama}? User tidak bisa login lagi.`)) return
+              
+              nonaktifkanUser(userId, user.id, user.email)
+                .then(() => {
+                  alert('User berhasil dinonaktifkan')
+                  loadJuruPungutTable()
+                })
+                .catch(err => alert('Gagal: ' + err.message))
+            })
+          })
+          
+          // Event listener untuk tombol aktifkan
+          document.querySelectorAll('.btn-activate').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const userId = btn.getAttribute('data-id')
+              const nama = btn.getAttribute('data-nama')
+              
+              if (!confirm(`Aktifkan kembali ${nama}?`)) return
+              
+              aktifkanUser(userId, user.id, user.email)
+                .then(() => {
+                  alert('User berhasil diaktifkan')
+                  loadJuruPungutTable()
+                })
+                .catch(err => alert('Gagal: ' + err.message))
+            })
+          })
+          
+          // Event listener untuk tombol hapus
+          document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const userId = btn.getAttribute('data-id')
+              const userName = btn.getAttribute('data-nama')
+              
+              if (!confirm(`Apakah Anda yakin ingin menghapus ${userName}?`)) return
+
+              try {
+                await hapusJuruPungut(userId, user.id, user.email)
+                alert('Juru pungut berhasil dihapus')
+                loadJuruPungutTable()
+                loadJuruPungutList()
+              } catch (error) {
+                alert('Gagal menghapus: ' + error.message)
+              }
+            })
+          })
+        }
+      } catch (error) {
+        loadingJP.classList.add('hidden');
+        emptyJP.classList.remove('hidden');
+      }
+    }
+
+    // Fungsi untuk load ringkasan per juru pungut
+    async function loadRingkasan() {
+      const loadingRingkasan = document.getElementById('loadingRingkasan');
+      const gridRingkasan = document.getElementById('gridRingkasan');
+      const emptyRingkasan = document.getElementById('emptyRingkasan');
+
+      try {
+        loadingRingkasan.classList.remove('hidden');
+        gridRingkasan.classList.add('hidden');
+        emptyRingkasan.classList.add('hidden');
+
+        const ringkasan = await getRingkasanPerJuruPungut();
+
+        loadingRingkasan.classList.add('hidden');
+
+        if (ringkasan.length === 0) {
+          emptyRingkasan.classList.remove('hidden');
+        } else {
+          gridRingkasan.classList.remove('hidden');
+          gridRingkasan.innerHTML = ringkasan.map(item => `
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+              <h4 class="font-semibold text-gray-800 mb-2">${item.nama}</h4>
+              <p class="text-2xl font-bold text-blue-600 mb-1">${formatRupiah(item.total)}</p>
+              <p class="text-sm text-gray-600">${item.jumlah} transaksi</p>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        loadingRingkasan.classList.add('hidden');
+        emptyRingkasan.classList.remove('hidden');
+      }
+    }
+
+    // Fungsi untuk load statistik
+    async function loadStatistik() {
+      try {
+        const stats = await getStatistik();
+        document.getElementById('totalHariIni').textContent = formatRupiah(stats.hariIni);
+        document.getElementById('totalBulanIni').textContent = formatRupiah(stats.bulanIni);
+        document.getElementById('totalKeseluruhan').textContent = formatRupiah(stats.keseluruhan);
+      } catch (error) {
+        console.error('Gagal memuat statistik:', error);
+      }
+    }
+
+    // Fungsi untuk load daftar juru pungut
+    async function loadJuruPungutList() {
+      try {
+        const juruPungutList = await getJuruPungutList();
+        const select = document.getElementById('filterJuruPungut');
+        
+        juruPungutList.forEach(jp => {
+          const option = document.createElement('option');
+          option.value = jp.id;
+          option.textContent = jp.nama;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Gagal memuat daftar juru pungut:', error);
+      }
+    }
+
+    // Fungsi untuk load daftar donasi
+    async function loadDonasi() {
+      const loadingDonasi = document.getElementById('loadingDonasi');
+      const tableDonasi = document.getElementById('tableDonasi');
+      const emptyDonasi = document.getElementById('emptyDonasi');
+      const bodyDonasi = document.getElementById('bodyDonasi');
+
+      try {
+        // Tampilkan loading
+        loadingDonasi.classList.remove('hidden');
+        tableDonasi.classList.add('hidden');
+        emptyDonasi.classList.add('hidden');
+
+        // Ambil nilai filter
+        const tanggalMulai = document.getElementById('tanggalMulai').value;
+        const tanggalAkhir = document.getElementById('tanggalAkhir').value;
+        const juruPungutId = document.getElementById('filterJuruPungut').value;
+
+        // Ambil data donasi
+        const donasi = await getAllDonasi(tanggalMulai, tanggalAkhir, juruPungutId);
+        currentData = donasi;
+
+        // Sembunyikan loading
+        loadingDonasi.classList.add('hidden');
+
+        if (donasi.length === 0) {
+          // Tampilkan empty state
+          emptyDonasi.classList.remove('hidden');
+        } else {
+          // Tampilkan tabel
+          tableDonasi.classList.remove('hidden');
+          renderTable();
+        }
+
+      } catch (error) {
+        loadingDonasi.classList.add('hidden');
+        emptyDonasi.classList.remove('hidden');
+        emptyDonasi.textContent = 'Gagal memuat data: ' + error.message;
+      }
+    }
+
+    // Fungsi untuk render tabel dengan sorting
+    function renderTable() {
+      const bodyDonasi = document.getElementById('bodyDonasi');
+      
+      // Sort data
+      let sortedData = [...currentData];
+      if (sortBy === 'nominal') {
+        sortedData.sort((a, b) => sortOrder === 'asc' ? a.nominal - b.nominal : b.nominal - a.nominal);
+      } else if (sortBy === 'tanggal') {
+        sortedData.sort((a, b) => {
+          const dateA = new Date(a.tanggal);
+          const dateB = new Date(b.tanggal);
+          return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+      }
+
+      // Update icon
+      document.getElementById('iconTanggal').textContent = sortBy === 'tanggal' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕';
+      document.getElementById('iconNominal').textContent = sortBy === 'nominal' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕';
+
+      // Render data ke tabel dengan highlight
+      bodyDonasi.innerHTML = sortedData.map(item => {
+        // Tentukan class untuk nominal berdasarkan nilai
+        let nominalClass = 'font-semibold text-green-600';
+        if (item.nominal > 1000000) {
+          nominalClass = 'font-bold text-green-700 text-lg';
+        } else if (item.nominal < 50000) {
+          nominalClass = 'font-normal text-gray-400';
+        }
+
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">${formatTanggal(item.tanggal)}</td>
+            <td class="px-4 py-3 font-medium">${item.nama_donatur}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                ${item.jenis_zakat.toUpperCase()}
+              </span>
+            </td>
+            <td class="px-4 py-3 ${nominalClass}">${formatRupiah(item.nominal)}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 text-xs rounded-full ${item.metode === 'cash' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                ${item.metode.toUpperCase()}
+              </span>
+            </td>
+            <td class="px-4 py-3">${item.users?.nama || '-'}</td>
+            <td class="px-4 py-3">
+              ${item.is_deleted ? `
+                <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-600">
+                  ❌ Dibatalkan
+                </span>
+              ` : !item.is_locked ? `
+                <div class="flex gap-1">
+                  <button 
+                    data-id="${item.id}"
+                    data-nama="${item.nama_donatur}"
+                    data-jenis="${item.jenis_zakat}"
+                    data-nominal="${item.nominal}"
+                    data-metode="${item.metode}"
+                    class="btn-edit-donasi bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    data-id="${item.id}"
+                    data-nama="${item.nama_donatur}"
+                    class="btn-delete-donasi bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ` : `
+                <span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-600">
+                  🔒 Terkunci
+                </span>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      // Event listener untuk tombol edit donasi
+      document.querySelectorAll('.btn-edit-donasi').forEach(btn => {
+        btn.addEventListener('click', () => {
+          openEditModal(
+            btn.getAttribute('data-id'),
+            btn.getAttribute('data-nama'),
+            btn.getAttribute('data-jenis'),
+            btn.getAttribute('data-nominal'),
+            btn.getAttribute('data-metode')
+          );
+        });
+      });
+      
+      // Event listener untuk tombol hapus donasi
+      document.querySelectorAll('.btn-delete-donasi').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const donasiId = btn.getAttribute('data-id');
+          const namaDonatur = btn.getAttribute('data-nama');
+          
+          if (!confirm(`Hapus donasi dari ${namaDonatur}?\n\nData akan dibatalkan (soft delete).`)) return;
+          
+          btn.disabled = true;
+          btn.textContent = 'Proses...';
+          
+          try {
+            await softDeleteDonasi(donasiId, user.id, user.email);
+            alert('✅ Donasi berhasil dihapus!');
+            loadDonasi();
+            loadStatistik();
+            loadRingkasan();
+          } catch (error) {
+            alert('Gagal hapus: ' + error.message);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Hapus';
+          }
+        });
+      });
+    }
+
+    // Fungsi untuk buka modal edit
+    function openEditModal(id, nama, jenis, nominal, metode) {
+      document.getElementById('editDonasiId').value = id;
+      document.getElementById('editNamaDonatur').value = nama;
+      document.getElementById('editJenisZakat').value = jenis;
+      document.getElementById('editNominal').value = formatRupiah(nominal);
+      document.getElementById('editMetode').value = metode;
+      document.getElementById('errorEditDonasi').classList.add('hidden');
+      document.getElementById('modalEditDonasi').classList.remove('hidden');
+    }
+
+    // Handle tutup modal
+    document.getElementById('btnBatalEdit').addEventListener('click', () => {
+      document.getElementById('modalEditDonasi').classList.add('hidden');
+    });
+
+    // Handle submit edit donasi
+    document.getElementById('formEditDonasi').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const donasiId = document.getElementById('editDonasiId').value;
+      const namaDonatur = document.getElementById('editNamaDonatur').value.trim();
+      const jenisZakat = document.getElementById('editJenisZakat').value;
+      const nominalInput = document.getElementById('editNominal').value;
+      const metode = document.getElementById('editMetode').value;
+      const errorMsg = document.getElementById('errorEditDonasi');
+      const btnSimpan = document.getElementById('btnSimpanEdit');
+
+      errorMsg.classList.add('hidden');
+
+      // Validasi nominal
+      const validasi = validateNominal(nominalInput);
+      if (!validasi.valid) {
+        errorMsg.textContent = validasi.message;
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      const nominal = validasi.value;
+
+      if (!namaDonatur || !jenisZakat || !metode) {
+        errorMsg.textContent = 'Semua field wajib diisi';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+
+      btnSimpan.disabled = true;
+      btnSimpan.textContent = 'Menyimpan...';
+
+      try {
+        // Ambil data lama
+        const { data: oldData, error: fetchError } = await supabase
+          .from('donasi')
+          .select('*')
+          .eq('id', donasiId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        // Cek is_locked
+        if (oldData.is_locked) {
+          throw new Error('Data sudah terkunci, tidak bisa diubah');
+        }
+
+        // Update donasi
+        const { data: newData, error: updateError } = await supabase
+          .from('donasi')
+          .update({
+            nama_donatur: namaDonatur,
+            jenis_zakat: jenisZakat,
+            nominal: nominal,
+            metode: metode,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', donasiId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+
+        // Insert audit log
+        await supabase.from('audit_logs').insert([{
+          user_id: user.id,
+          user_email: user.email,
+          action: 'UPDATE_DONASI_ADMIN',
+          table_name: 'donasi',
+          record_id: donasiId,
+          old_data: oldData,
+          new_data: newData
+        }]);
+
+        alert('✅ Donasi berhasil diupdate!');
+        document.getElementById('modalEditDonasi').classList.add('hidden');
+        loadDonasi();
+        loadStatistik();
+        loadRingkasan();
+      } catch (error) {
+        errorMsg.textContent = 'Gagal: ' + error.message;
+        errorMsg.classList.remove('hidden');
+      } finally {
+        btnSimpan.disabled = false;
+        btnSimpan.textContent = 'Simpan';
+      }
+    });
+  </script>
+</body>
+</html>

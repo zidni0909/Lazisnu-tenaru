@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - LAZISNU</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#15803d">
+  <meta name="description" content="Sistem Administrasi Donasi LAZISNU">
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Apple Touch Icon -->
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LAZISNU">
+  
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+      <!-- Header -->
+      <h1 class="text-2xl font-bold text-center mb-6 text-green-700">LAZISNU</h1>
+      <h2 class="text-xl text-center mb-6 text-gray-700">Login Sistem Administrasi</h2>
+
+      <!-- Form Login -->
+      <form id="loginForm" class="space-y-4">
+        <!-- Email -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <input 
+            type="email" 
+            id="email" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            placeholder="Masukkan email"
+          >
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <div class="relative">
+            <input 
+              type="password" 
+              id="password" 
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Masukkan password"
+            >
+            <button 
+              type="button" 
+              id="togglePassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden text-red-600 text-sm"></div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          id="loginBtn"
+          class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition"
+        >
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- bcryptjs CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  
+  <!-- PWA Install Prompt -->
+  <div id="installPrompt" class="hidden fixed bottom-4 left-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-lg z-50">
+    <div class="flex items-center justify-between">
+      <div class="flex-1">
+        <p class="font-semibold">Install Aplikasi LAZISNU</p>
+        <p class="text-sm">Install untuk akses lebih cepat</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="installBtn" class="bg-white text-green-600 px-4 py-2 rounded font-semibold">
+          Install
+        </button>
+        <button id="dismissBtn" class="text-white px-4 py-2 rounded">
+          Nanti
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registered:', registration.scope)
+          })
+          .catch((error) => {
+            console.error('❌ Service Worker registration failed:', error)
+          })
+      })
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt
+    const installPrompt = document.getElementById('installPrompt')
+    const installBtn = document.getElementById('installBtn')
+    const dismissBtn = document.getElementById('dismissBtn')
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      deferredPrompt = e
+      
+      // Show install prompt after 3 seconds
+      setTimeout(() => {
+        installPrompt.classList.remove('hidden')
+      }, 3000)
+    })
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return
+      
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      
+      console.log(`User response: ${outcome}`)
+      deferredPrompt = null
+      installPrompt.classList.add('hidden')
+    })
+
+    dismissBtn.addEventListener('click', () => {
+      installPrompt.classList.add('hidden')
+    })
+
+    // Detect if app is installed
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ PWA installed successfully')
+      installPrompt.classList.add('hidden')
+    })
+  </script>
+  
+  <script type="module">
+    // Declare bcrypt global
+    const bcrypt = window.dcodeIO.bcrypt
+    window.bcrypt = bcrypt
+    
+    import { login, getCurrentUser } from './auth.js'
+
+    // Cek jika sudah login, redirect ke halaman sesuai role
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        window.location.href = 'admin.html';
+      } else if (currentUser.role === 'juru_pungut') {
+        window.location.href = 'dashboard.html';
+      }
+    }
+
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', () => {
+      const passwordInput = document.getElementById('password');
+      const eyeIcon = document.getElementById('eyeIcon');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />';
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />';
+      }
+    });
+
+    // Handle form submit
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+      const loginBtn = document.getElementById('loginBtn');
+
+      // Reset error message
+      errorMessage.classList.add('hidden');
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Loading...';
+
+      try {
+        await login(email, password);
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('hidden');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>
